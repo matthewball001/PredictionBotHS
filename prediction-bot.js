@@ -54,24 +54,31 @@ var commands = {
 			let sql = "select * "
 					+ "from Runs "
 					+ "where Current = true";
-
+			
 			sqlCon.query(sql, function(err, results, fields) {
 				if (err) throw err;
 
-				if (results.length <= 0) {
-					return msg.channel.send("There is no run to stop");
+				if (results.length < 1) {
+					msg.channel.send("No current run");
 				}
 				else if (results.length === 1) {
-					sql = "update Runs "
-						+ "set Current = false "
-						+ " where ID = " + results[0].ID;
+					let sql = "update Runs "
+							+ "set Current = false "
+							+ "where ID = " + results[0].ID;
 
 					sqlCon.query(sql, function(err) { if (err) throw err; })
 				}
-				else {
-					msg.channel.send("Somehow multiple runs are current?")
+				else if (results.length > 1) {
+					msg.channel.send("somehow multiple runs");
 				}
 			});
+		}
+	},
+	"predict": {
+		process: function(client, msg, args) {
+			if (args < 0 || args > 12) {
+				return msg.channel.send("Sorry, <@" + msg.author.id + ">, predictions must be between 0 and 12, inclusive");
+			}
 		}
 	}
 }
