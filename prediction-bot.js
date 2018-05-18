@@ -43,7 +43,10 @@ var commands = {
 				else {
 					sql = "insert into Runs (Current)"
 						+ "values (true)"; 
-					sqlCon.query(sql, function(err) { if (err) throw err; });
+					sqlCon.query(sql, function(err) { 
+						if (err) throw err;
+						msg.channel.send("Run started! Start predicting!");
+					});
 				}
 			});
 			// sqlCon.end();
@@ -66,7 +69,10 @@ var commands = {
 							+ "set Current = false "
 							+ "where ID = " + results[0].ID;
 
-					sqlCon.query(sql, function(err) { if (err) throw err; })
+					sqlCon.query(sql, function(err) { 
+						if (err) throw err;
+						msg.channel.send("Run's over!");
+					})
 				}
 				else if (results.length > 1) {
 					msg.channel.send("somehow multiple runs");
@@ -76,9 +82,35 @@ var commands = {
 	},
 	"predict": {
 		process: function(client, msg, args) {
-			if (args < 0 || args > 12) {
-				return msg.channel.send("Sorry, <@" + msg.author.id + ">, predictions must be between 0 and 12, inclusive");
-			}
+			args = parseInt(args);
+
+			let sql = "select * "
+					+ "from Runs "
+					+ "where Current = true";
+			
+			sqlCon.query(sql, function(err, results, fields) {
+				if (err) throw err;
+
+				if (results.length < 1) {
+					return msg.channel.send("Doesn't look like predictions are open");
+				}
+				else if (results.length === 1) {
+
+					if (args === undefined || args.length === 0) {
+						return msg.channel.send("<@" + msg.author.id + ">, you need to predict a number between 0 and 12")
+					}
+					else if (args < 0 || args > 12) {
+						return msg.channel.send("Sorry, <@" + msg.author.id + ">, predictions " +
+												"must be an integer between 0 and 12, inclusive");
+					}
+
+					console.log(args);
+					msg.channel.send("<@" + msg.author.id + ">, you predicted " + args + "!");
+				}
+				else if (results.length > 1) {
+					msg.channel.send("somehow multiple runs");
+				}
+			});
 		}
 	}
 }
