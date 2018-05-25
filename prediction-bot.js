@@ -5,6 +5,7 @@ const client = new Discord.Client();
 var mysql = require("mysql");
 
 var sqlCon;			// MySQL connection
+const MYSQL_DUPLICATE_PK = 1062;
 
 function createDatabaseConn() {
 	sqlCon = mysql.createConnection({
@@ -28,6 +29,7 @@ var commands = {
 		}
 	},
 	"start": {
+		usage: "starts an arena run",
 		process: function(client, msg, args) {
 			// sqlCon.connect(function(err) { if (err) throw err; });
 			let sql = "select current "
@@ -53,6 +55,7 @@ var commands = {
 		}
 	},
 	"stop": {
+		usage: "stops an Arena run",
 		process: function(client, msg, args) {
 			let sql = "select * "
 					+ "from Runs "
@@ -81,6 +84,7 @@ var commands = {
 		}
 	},
 	"predict": {
+		usage: "choose number between 0 and 12 for Arena win prediction",
 		process: function(client, msg, args) {
 			args = parseInt(args);
 
@@ -104,14 +108,37 @@ var commands = {
 												"must be an integer between 0 and 12, inclusive");
 					}
 
-					console.log(args);
-					msg.channel.send("<@" + msg.author.id + ">, you predicted " + args + "!");
+					sql = "insert into Predictions "
+						+ "values (" + msg.author.id + ", " + args + ", " + results[0].ID + ")";
+
+					// check for DiscordID in Predictions table
+					// if absent, insert prediction
+					// if present, update prediction
+
+					return msg.channel.send("<@" + msg.author.id + ">, you predicted " + args + "!");
 				}
 				else if (results.length > 1) {
-					msg.channel.send("somehow multiple runs");
+					return msg.channel.send("somehow multiple runs");
 				}
 			});
 		}
+	}
+}
+
+function memberAddedToGuild() {
+	var members = msg.guild.members.array();
+	let sql2 = "";
+
+	console.log(members.length);
+	for (let m in members) {
+		if (members[m].user.bot) {
+			console.log("dats a bot");
+			continue;
+		}
+		sql2 = "insert into Users (DiscordID) "
+					+ "values (" + members[m].id + ")";
+
+		sqlCon.query(sql2);
 	}
 }
 
@@ -126,7 +153,7 @@ function executeMessageCommand(msg) {
 		var arrayCommands = Object.keys(commands).sort();	// sort commands for output
 		var reply = "";
 		for (let i in arrayCommands) {
-			reply += config.prefix + arrayCommands[i] + " " + commands[arrayCommands[i]].usage + "\n";
+			reply += config.prefix + arrayCommands[i] + ": " + commands[arrayCommands[i]].usage + "\n";
 		}
 		msg.channel.send(reply);
 	}
